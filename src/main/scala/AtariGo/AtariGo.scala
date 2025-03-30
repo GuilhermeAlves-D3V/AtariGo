@@ -41,7 +41,7 @@ object AtariGo extends App {
   }
 
 //  private def putPiece(board: Board, coord: Coord2D, stone: Stone): Board = {
-//    board.updated(index, alteracao a fazer)
+//    board.updated(index, alteração a fazer no tabuleiro)
 //  }
 
 }
