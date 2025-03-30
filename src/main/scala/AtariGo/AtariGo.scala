@@ -7,7 +7,6 @@ type Board = List[List[Stone]]
 type Coord2D = (Int, Int)
 
 case class AtariGo(board: Board) //implementar os métodos para adicionar/meter peças + obter as coordenadas vazias
-//repensar isto
 
 object AtariGo extends App {
   //Game(createBoard(9))
