@@ -41,7 +41,7 @@ object AtariGo{
         if (isValid(neighbor)) {
           board(neighbor._1)(neighbor._2) match {
             case Stone.Empty => count + 1
-            case _           => count
+            case _ => count
           }
         } else {
           count
