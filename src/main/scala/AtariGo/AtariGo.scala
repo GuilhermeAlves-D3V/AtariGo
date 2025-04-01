@@ -70,5 +70,6 @@ object AtariGoApp extends App {
 
   val coord = (2, 2)
   println(s"\nCoordenada $coord é válida? ${AtariGo.validCoord(coord, board)}")
+  println(board(2)(4))
 }
 
