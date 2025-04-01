@@ -32,12 +32,22 @@ object AtariGo{
     aux_row(lista, 0, Nil)
   }
 
-  def validCoord(coord:Coord2D,board: Board):Boolean = {
-    // adicionar a verificação relativamente aos graus de liberdade
-   val empty_coords = getListOfEmptyPlaces(board)
-    if (empty_coords.contains(coord)) true
-    else false
-  }
+    def liberty(coord:Coord2D,board: Board):Int = {
+      val neighbors = List((coord._1+1, coord._2), (coord._1-1, coord._2), (coord._1, coord._2+1), (coord._1, coord._1-1))
+      def isValid(c: Coord2D): Boolean = {
+        c._1 >= 0 && c._1 <= 8 && c._2 >= 0 && c._2 <= 8
+      }
+      neighbors.foldLeft(0) { (count, neighbor) =>
+        if (isValid(neighbor)) {
+          board(neighbor._1)(neighbor._2) match {
+            case Stone.Empty => count + 1
+            case _           => count
+          }
+        } else {
+          count
+        }
+      }
+    }
 
   def randomMove(lstOpenCoords: List[Coord2D], rand: MyRandom): (Coord2D, MyRandom) = lstOpenCoords match {
     case Nil =>
@@ -68,8 +78,8 @@ object AtariGoApp extends App {
   println("\nPosição aleatória + random seed:")
   println(AtariGo.randomMove(game.emptyPlaces,r))
 
-  val coord = (2, 2)
-  println(s"\nCoordenada $coord é válida? ${AtariGo.validCoord(coord, board)}")
+  val coord = (8, 8)
+  println(s"\nLiberdade da $coord: ${AtariGo.liberty(coord, board)}")
   println(board(2)(4))
 }
 
