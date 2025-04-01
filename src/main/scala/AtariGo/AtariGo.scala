@@ -9,7 +9,7 @@ type Coord2D = (Int, Int)
 case class AtariGo(board: Board) { //implementar os métodos para adicionar/meter peças + obter as coordenadas vazias
   def emptyPlaces: List[Coord2D] = AtariGo.getListOfEmptyPlaces(board)
 }
-
+/// bom dia
 object AtariGo{
   def createBoard(size: Int): Board =
     List.fill(size)(List.fill(size)(Stone.Empty))
