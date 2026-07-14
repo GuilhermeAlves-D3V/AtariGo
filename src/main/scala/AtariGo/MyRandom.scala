@@ -1,19 +1,12 @@
-package AtariGo
+package atarigo
 
-case class MyRandom(seed: Long) {
-  def randomInt: (Int, MyRandom) = {
-    val newSeed = (seed * 0x5DEECE66DL + 0xBL) & 0xFFFFFFFFFFFFL //origina uma nova semente
-    val nextRandom = MyRandom(newSeed) //cria uma instância MyRandom com a semente previamente criada
-    val n = (newSeed >>> 16).toInt //extrai os 32 bits superiores de newSeed
-    (n, nextRandom) //retorna uma tupla com o número gerado e a nova semente.
-  }
+/** A small immutable pseudo-random number generator. */
+final case class MyRandom(seed: Long):
+  private def next: (Int, MyRandom) =
+    val newSeed = (seed * 0x5DEECE66DL + 0xBL) & 0xFFFFFFFFFFFFL
+    ((newSeed >>> 16).toInt, MyRandom(newSeed))
 
-  def nextInt(n: Int): (Int, MyRandom) = { //calcula um número aleatório de [0-n]
-    val newSeed = (seed * 0x5DEECE66DL + 0xBL) & 0xFFFFFFFFFFFFL //origina uma nova semente
-    val nextRandom = MyRandom(newSeed) //cria uma instância MyRandom com a semente previamente criada
-    val nn = ((newSeed >>> 16).toInt) % n
-    (if (nn < 0) -nn else nn, nextRandom) //nn for negativo, converte para positivo com -nn
-  }
-  }
-  //Cada nextRandom carrega a seed atualizada para a próxima operação, garantindo que a sequência seja sempre reproduzível!
-  //Deste modo a sequência não será sempre a mesma
+  def nextInt(bound: Int): (Int, MyRandom) =
+    require(bound > 0, "The bound must be positive")
+    val (value, nextRandom) = next
+    (Math.floorMod(value, bound), nextRandom)

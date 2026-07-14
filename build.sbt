@@ -4,5 +4,7 @@ ThisBuild / scalaVersion := "3.3.5"
 
 lazy val root = (project in file("."))
   .settings(
-    name := "Atari Go"
+    name := "atari-go",
+    Compile / run / fork := true,
+    libraryDependencies += "org.scalameta" %% "munit" % "1.0.4" % Test
   )
