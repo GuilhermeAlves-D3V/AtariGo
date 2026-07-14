@@ -1,6 +1,11 @@
-package AtariGo
+package atarigo
 
-object Stone extends Enumeration {
-  type Stone = Value
-  val Black, White, Empty = Value
-}
+enum Stone(val symbol: String):
+  case Black extends Stone("●")
+  case White extends Stone("○")
+  case Empty extends Stone("·")
+
+  def opponent: Stone = this match
+    case Black => White
+    case White => Black
+    case Empty => Empty

@@ -1,85 +1,92 @@
-package AtariGo
+package atarigo
 
-import Stone.Stone
-import AtariGoUtils.{showPrompt, getUserInput}
+type Board = Vector[Vector[Stone]]
+type Coord = (Int, Int)
 
-type Board = List[List[Stone]]
-type Coord2D = (Int, Int)
+enum MoveResult:
+  case Invalid(reason: String)
+  case Continue(game: AtariGo)
+  case Won(game: AtariGo, winner: Stone)
 
-case class AtariGo(board: Board) { //implementar os métodos para adicionar/meter peças + obter as coordenadas vazias
-  def emptyPlaces: List[Coord2D] = AtariGo.getListOfEmptyPlaces(board)
-}
-/// bom dia
-object AtariGo{
-  def createBoard(size: Int): Board =
-    List.fill(size)(List.fill(size)(Stone.Empty))
+/** Immutable state and rules for Atari Go (the first capture wins). */
+final case class AtariGo private (board: Board, currentPlayer: Stone):
+  val size: Int = board.size
 
-  def getListOfEmptyPlaces(lista: Board): List[Coord2D] = {
-    def aux_row(rows: List[List[Stone]], rowIndex: Int, acc: List[Coord2D]): List[Coord2D] = rows match {
-      case Nil => acc
+  def emptyPlaces: Vector[Coord] =
+    for
+      row <- board.indices.toVector
+      column <- board(row).indices
+      if board(row)(column) == Stone.Empty
+    yield (row, column)
+
+  def stoneAt(coord: Coord): Option[Stone] =
+    Option.when(AtariGo.isInside(coord, size))(board(coord._1)(coord._2))
+
+  def libertiesAt(coord: Coord): Set[Coord] = stoneAt(coord) match
+    case Some(Stone.Black | Stone.White) => AtariGo.liberties(board, coord)
+    case _                               => Set.empty
+
+  def play(coord: Coord): MoveResult =
+    if !AtariGo.isInside(coord, size) then MoveResult.Invalid("Coordinate outside the board.")
+    else if board(coord._1)(coord._2) != Stone.Empty then MoveResult.Invalid("That position is occupied.")
+    else
+      val nextBoard = board.updated(coord._1, board(coord._1).updated(coord._2, currentPlayer))
+      val captured = AtariGo.neighbours(coord, size)
+        .filter(c => nextBoard(c._1)(c._2) == currentPlayer.opponent)
+        .exists(c => AtariGo.liberties(nextBoard, c).isEmpty)
+
+      val nextGame = AtariGo(nextBoard, currentPlayer.opponent)
+      if captured then MoveResult.Won(nextGame, currentPlayer)
+      else if AtariGo.liberties(nextBoard, coord).isEmpty then MoveResult.Invalid("Suicide moves are not allowed.")
+      else MoveResult.Continue(nextGame)
+
+  def randomMove(random: MyRandom): Option[(Coord, MyRandom)] =
+    val legalMoves = emptyPlaces.filter { coord =>
+      play(coord) match
+        case MoveResult.Invalid(_) => false
+        case _                     => true
+    }
+    Option.when(legalMoves.nonEmpty) {
+      val (index, nextRandom) = random.nextInt(legalMoves.size)
+      (legalMoves(index), nextRandom)
+    }
+
+  def render: String =
+    val width = (size - 1).toString.length
+    val header = " " * (width + 1) + board.indices.map(i => f"$i%2d").mkString
+    val rows = board.zipWithIndex.map { case (row, index) =>
+      index.toString.reverse.padTo(width, ' ').reverse + " " +
+        row.map(stone => s" ${stone.symbol}").mkString
+    }
+    (header +: rows).mkString("\n")
+
+object AtariGo:
+  def apply(size: Int = 9, firstPlayer: Stone = Stone.Black): AtariGo =
+    require(size >= 2, "The board must be at least 2x2")
+    require(firstPlayer != Stone.Empty, "The first player must be black or white")
+    new AtariGo(Vector.fill(size, size)(Stone.Empty), firstPlayer)
+
+  private def isInside(coord: Coord, size: Int): Boolean =
+    coord._1 >= 0 && coord._1 < size && coord._2 >= 0 && coord._2 < size
+
+  private def neighbours(coord: Coord, size: Int): Vector[Coord] =
+    val (row, column) = coord
+    Vector((row - 1, column), (row + 1, column), (row, column - 1), (row, column + 1))
+      .filter(isInside(_, size))
+
+  private def group(board: Board, start: Coord): Set[Coord] =
+    val colour = board(start._1)(start._2)
+    @annotation.tailrec
+    def visit(pending: List[Coord], seen: Set[Coord]): Set[Coord] = pending match
+      case Nil => seen
       case head :: tail =>
-        val newCoords = aux_columns(head, rowIndex, 0, Nil)
-        aux_row(tail, rowIndex + 1, acc ++ newCoords) // ++ para concatenação das listas
-    }
+        val connected = neighbours(head, board.size)
+          .filter(c => board(c._1)(c._2) == colour)
+          .filterNot(seen)
+        visit(connected.toList ::: tail, seen ++ connected)
+    visit(List(start), Set(start))
 
-    def aux_columns(columns: List[Stone], rowIdx: Int, colIdx: Int, acc: List[Coord2D]): List[Coord2D] = columns match {
-      case Nil => acc
-      case Stone.Empty :: tail =>
-        aux_columns(tail, rowIdx, colIdx + 1, (rowIdx, colIdx) :: acc)
-      case _ :: tail =>
-        aux_columns(tail, rowIdx, colIdx + 1, acc)
-    }
-    aux_row(lista, 0, Nil)
-  }
-
-    def liberty(coord:Coord2D,board: Board):Int = {
-      val neighbors = List((coord._1+1, coord._2), (coord._1-1, coord._2), (coord._1, coord._2+1), (coord._1, coord._1-1))
-      def isValid(c: Coord2D): Boolean = {
-        c._1 >= 0 && c._1 <= 8 && c._2 >= 0 && c._2 <= 8
-      }
-      neighbors.foldLeft(0) { (count, neighbor) =>
-        if (isValid(neighbor)) {
-          board(neighbor._1)(neighbor._2) match {
-            case Stone.Empty => count + 1
-            case _ => count
-          }
-        } else {
-          count
-        }
-      }
-    }
-
-  def randomMove(lstOpenCoords: List[Coord2D], rand: MyRandom): (Coord2D, MyRandom) = lstOpenCoords match {
-    case Nil =>
-      throw new IllegalArgumentException("Não há jogadas possíveis.")
-
-    case _ =>
-      val (randomIndex, nextRand) = rand.nextInt(lstOpenCoords.length)
-      val selectedCoord = lstOpenCoords(randomIndex)
-      (selectedCoord, nextRand)
-  }
-
-  //  private def putPiece(board: Board, coord: Coord2D, stone: Stone): Board = {
-//    board.updated(index, alteração a fazer no tabuleiro)
-//  }
-}
-
-object AtariGoApp extends App {
-  val board = AtariGo.createBoard(9)
-  val game = AtariGo(board)
-
-  println("Tabuleiro inicial:")
-  println(board)
-
-  println("\nPosições vazias:")
-  println(game.emptyPlaces)
-
-  val r = MyRandom(System.currentTimeMillis())
-  println("\nPosição aleatória + random seed:")
-  println(AtariGo.randomMove(game.emptyPlaces,r))
-
-  val coord = (8, 8)
-  println(s"\nLiberdade da $coord: ${AtariGo.liberty(coord, board)}")
-  println(board(2)(4))
-}
-
+  private def liberties(board: Board, start: Coord): Set[Coord] =
+    group(board, start)
+      .flatMap(neighbours(_, board.size))
+      .filter(c => board(c._1)(c._2) == Stone.Empty)

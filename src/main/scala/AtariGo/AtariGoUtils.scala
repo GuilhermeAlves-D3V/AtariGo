@@ -1,15 +1,11 @@
-package AtariGo
+package atarigo
 
-import scala.io.StdIn.readLine
-
-object AtariGoUtils {
-  def showPrompt(): Coord2D = {
-    print("\n Onde deseja inserir a peça ? \n Coordenada do X:")
-    val x = getUserInput()
-    print("\n Coordenada do Y:")
-    val y = getUserInput()
-    (x,y)
-  }
-
-  def getUserInput(): Int = readLine.trim.toInt
-}
+object AtariGoUtils:
+  def parseCoordinate(input: String): Either[String, Coord] =
+    input.trim.split("\\s+").toList match
+      case row :: column :: Nil =>
+        for
+          r <- row.toIntOption.toRight("Use two whole numbers, for example: 2 3")
+          c <- column.toIntOption.toRight("Use two whole numbers, for example: 2 3")
+        yield (r, c)
+      case _ => Left("Use two coordinates separated by a space, for example: 2 3")
